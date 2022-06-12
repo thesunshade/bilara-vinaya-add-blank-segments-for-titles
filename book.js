@@ -6,7 +6,7 @@ const branch = "published";
 const reportArray = [];
 
 // The actual thing that does the work
-let logIndex = 0;
+let logIndex = 1;
 const sections = Object.keys(rules); // [ 'bu-vb', 'bi-vb' ]
 for (let b = 0; b < sections.length; b++) {
   // loop through sections
@@ -33,8 +33,8 @@ setTimeout(() => {
     // console.log(reportArray[i]);
     report += reportArray[i] + "\n";
   }
-  fs.writeFileSync(`./report-${branch}.txt`, report);
-  fs.writeFileSync(`./reportArray.txt`, JSON.stringify(reportArray, null, 2));
+  fs.writeFileSync(`./book-report-${branch}.txt`, report);
+  fs.writeFileSync(`./book-reportArray.txt`, JSON.stringify(reportArray, null, 2));
 }, 60000);
 
 function buildSutta(book, type, number, logIndex) {
@@ -65,35 +65,52 @@ function buildSutta(book, type, number, logIndex) {
       console.log(slug);
     });
 
-  Promise.all([rootResponse, htmlResponse]).then(responses => {
-    const [paliData, htmlData] = responses;
-    let newPaliData = {};
-    let replacementCount = 0;
+  const translationResponse = fetch(
+    `https://raw.githubusercontent.com/suttacentral/bilara-data/${branch}/translation/en/brahmali/vinaya/${slug}_translation-en-brahmali.json`
+  )
+    .then(response => response.json())
+    .catch(error => {
+      console.log("something went wrong getting translation");
+      console.log(slug);
+    });
+
+  Promise.all([rootResponse, htmlResponse, translationResponse]).then(responses => {
+    let [paliData, htmlData, translationData] = responses;
+    let chapterHTML = `<?xml version="1.0" encoding="utf-8"?>
+    <!DOCTYPE html>
+    <html xmlns="http://www.w3.org/1999/xhtml" xmlns:epub="http://www.idpf.org/2007/ops">
+    <head>
+      <title>${type}</title>
+    </head>
+    <body>`;
     Object.keys(htmlData).forEach(segment => {
       if (paliData[segment] === undefined) {
-        newPaliData[segment] = "";
-        replacementCount++;
-      } else {
-        newPaliData[segment] = paliData[segment];
+        paliData[segment] = "";
       }
+      if (translationData[segment] === undefined) {
+        translationData[segment] = "";
+      }
+      let [openHtml, closeHtml] = htmlData[segment].split(/{}/);
+      chapterHTML += `${openHtml}<span class="segment" id ="${segment}"><span class="pli-lang" lang="pi">${paliData[segment]}</span><span class="eng-lang" lang="en">${translationData[segment]}</span></span>${closeHtml}\n\n`;
     });
-    reportArray[logIndex] = `${book}-${type != "root" ? type + "-" : ""}${number} segments added: ${replacementCount}`;
+
+    reportArray[logIndex] = `${book}-${type != "root" ? type + "-" : ""}${number}`;
     // console.log(reportArray[logIndex]);
-    let dir = "";
-    if (type === "root") {
-      dir = `./${branch}/vinaya/${book}`;
-    } else {
-      dir = `./${branch}/vinaya/${book}/${book}-${type}`;
-    }
 
+    chapterHTML += `</body>
+    </html>`;
+
+    let dir = "text";
     if (!fs.existsSync(dir)) {
-      fs.mkdirSync(dir, { recursive: true });
+      fs.mkdirSync(dir);
     }
 
+    let leadingNumber = ("000" + logIndex).slice(-4);
+
     if (type === "root") {
-      fs.writeFileSync(`./${dir}/${book}${number}_root-pli-ms.json`, JSON.stringify(newPaliData, null, 2));
+      fs.writeFileSync(`./${dir}/${leadingNumber}-${book}${number}.xhtml`, chapterHTML);
     } else {
-      fs.writeFileSync(`./${dir}/${book}-${type}${number}_root-pli-ms.json`, JSON.stringify(newPaliData, null, 2));
+      fs.writeFileSync(`./${dir}/${leadingNumber}-${book}-${type}${number}.xhtml`, chapterHTML);
     }
   });
 }
