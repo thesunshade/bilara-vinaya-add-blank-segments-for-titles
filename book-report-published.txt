@@ -344,7 +344,7 @@ pli-tv-bi-vb-pd-1
 pli-tv-bi-vb-pd-2-8
 pli-tv-bi-vb--as1-7
 pli-tv-bi-vb--sk1-75
-pli-tv-kd-1
+undefined
 pli-tv-kd-2
 pli-tv-kd-3
 pli-tv-kd-4
@@ -354,13 +354,13 @@ pli-tv-kd-7
 pli-tv-kd-8
 pli-tv-kd-9
 pli-tv-kd-10
-pli-tv-kd-11
+undefined
 pli-tv-kd-12
 pli-tv-kd-13
-pli-tv-kd-14
+undefined
 pli-tv-kd-15
-pli-tv-kd-16
-pli-tv-kd-17
+undefined
+undefined
 pli-tv-kd-18
 pli-tv-kd-19
 pli-tv-kd-20
@@ -403,7 +403,7 @@ pli-tv-pvr-4
 pli-tv-pvr-5
 pli-tv-pvr-5
 pli-tv-pvr-6
-pli-tv-pvr-7
+undefined
 pli-tv-pvr-8
 pli-tv-pvr-9
 pli-tv-pvr-10
@@ -417,4 +417,3 @@ pli-tv-pvr-17
 pli-tv-pvr-18
 pli-tv-pvr-19
 pli-tv-pvr-20
-pli-tv-pvr-21
