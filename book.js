@@ -2,9 +2,13 @@ const fetch = require("node-fetch");
 const fs = require("fs");
 const language = "pli-tv";
 const rules = require("./rules.json");
-const branch = "published";
+const { table } = require("console");
+const branch = "unpublished-vinaya-corrections-additions-BKh/"; // should end with slash
 const reportArray = [];
 let dir = "text";
+const githubLocation = `https://raw.githubusercontent.com/thesunshade/bilara-data/${branch}`;
+
+// https://raw.githubusercontent.com/thesunshade/bilara-data/unpublished-vinaya-corrections-additions-BKh/html/pli/ms/vinaya/pli-tv-bu-vb/pli-tv-bu-vb-pj/pli-tv-bu-vb-pj2_html.json
 
 try {
   fs.rmdirSync(dir, { recursive: true });
@@ -55,7 +59,7 @@ function buildSutta(book, type, number, logIndex) {
     slug = `${book}/${book}-${type}/${book}-${type}${number}`;
   }
 
-  let headerPrefix = "start";
+  let headerPrefix = "start"; // should never appear in book. Indicates a problem
 
   switch (book) {
     case `${language}-bu-vb`:
@@ -71,25 +75,23 @@ function buildSutta(book, type, number, logIndex) {
       headerPrefix = "Pvr";
       break;
     default:
-      headerPrefix = "missing";
+      headerPrefix = "missing"; // indicates a problem
   }
 
   headerPrefix = `<span class="prefix"> ${headerPrefix} ${number} </span>`;
 
   let tableOfContents = "";
 
-  const rootResponse = fetch(
-    `https://raw.githubusercontent.com/suttacentral/bilara-data/${branch}/root/pli/ms/vinaya/${slug}_root-pli-ms.json`
-  )
+  const rootResponse = fetch(`${githubLocation}root/pli/ms/vinaya/${slug}_root-pli-ms.json`)
     .then(response => response.json())
     .catch(error => {
       console.log("something went wrong getting root");
-      console.log(slug);
+      console.log(error);
+
+      console.log(`${githubLocation}root/pli/ms/vinaya/${slug}_root-pli-ms.json`);
     });
 
-  const htmlResponse = fetch(
-    `https://raw.githubusercontent.com/suttacentral/bilara-data/${branch}/html/pli/ms/vinaya/${slug}_html.json`
-  )
+  const htmlResponse = fetch(`${githubLocation}html/pli/ms/vinaya/${slug}_html.json`)
     .then(response => response.json())
     .catch(error => {
       console.log("something went wrong getting html");
@@ -97,7 +99,7 @@ function buildSutta(book, type, number, logIndex) {
     });
 
   const translationResponse = fetch(
-    `https://raw.githubusercontent.com/suttacentral/bilara-data/${branch}/translation/en/brahmali/vinaya/${slug}_translation-en-brahmali.json`
+    `${githubLocation}translation/en/brahmali/vinaya/${slug}_translation-en-brahmali.json`
   )
     .then(response => response.json())
     .catch(error => {
@@ -119,7 +121,12 @@ function buildSutta(book, type, number, logIndex) {
     let bottom = `</body>
     </html>`;
 
+    let paliInclusionFlag = true;
+
+    // Process each segment
     Object.keys(htmlData).forEach(segment => {
+      let [openHtml, closeHtml] = htmlData[segment].split(/{}/);
+
       // deal with missing segments
       if (paliData[segment] === undefined) {
         paliData[segment] = "";
@@ -128,35 +135,68 @@ function buildSutta(book, type, number, logIndex) {
         translationData[segment] = "";
       }
 
-      let [openHtml, closeHtml] = htmlData[segment].split(/{}/);
+      // step down heading levels
+      openHtml = openHtml
+        .replace("<h5", "<h6")
+        .replace("<h4", "<h5")
+        .replace("<h3", "<h4")
+        .replace("<h2", "<h3")
+        .replace("<h1", "<h2");
+      closeHtml = closeHtml
+        .replace("</h5", "</h6")
+        .replace("</h4", "</h5")
+        .replace("</h3", "</h4")
+        .replace("</h2", "</h3")
+        .replace("</h1", "</h2");
 
-      if (openHtml.match(/<h[234]/)) {
-        let level = openHtml.match(/<h([234])/)[1];
+      // create table of contents and link backs in headings
+      if (openHtml.match(/<h[345]/)) {
+        let level = openHtml.match(/<h([345])/)[1];
         tableOfContents += `<div class="level-${level}" id="toc-${segment}"><a href="#${segment}">${translationData[segment]}</a></div>\n`;
-
-        openHtml = openHtml.replace(/(<h[234].*>)/, `<a href="#toc-${segment}"> $1${headerPrefix}`);
+        openHtml = openHtml.replace(/(<h[345].*>)/, `<a href="#toc-${segment}"> $1${headerPrefix}`);
       }
-      if (closeHtml.match(/<\/h[234]>/)) {
-        closeHtml = closeHtml.replace(/(<\/h[234]>)/, `$1</a>`);
+      if (/<\/h[345]>/.test(closeHtml)) {
+        closeHtml = closeHtml.replace(/(<\/h[345]>)/, `$1</a>`);
       }
 
+      if (/<p|<dd|<li/.test(openHtml)) {
+        paliInclusionFlag = false;
+        if (openHtml.match("class='rule'")) {
+          paliInclusionFlag = true;
+        }
+      }
+
+      // generate segment
       chapterHTML += `
       ${openHtml}
       <span class="segment" id ="${segment}">
-      ${paliData[segment] ? `<span class="pli-lang" lang="pi">${paliData[segment]}</span>` : ""}
-      ${translationData[segment] ? `<span class="eng-lang" lang="en">${translationData[segment]}</span>` : ""}
+      ${paliData[segment] && paliInclusionFlag ? `<span class="pli-lang" lang="pi">${paliData[segment]}</span>` : ""}
+      ${
+        translationData[segment]
+          ? `<span class="eng-lang" lang="en">${translationData[segment]
+              .replace(/_(.+?)_/g, "<i>$1</i>")
+              .replace(/\*(.+?)\*/g, "<em>$1</em>")}</span>`
+          : ""
+      }
       </span>
       ${closeHtml}`;
-    });
+
+      if (/<\/p|<\/dd|<\/li/.test(closeHtml)) {
+        paliInclusionFlag = true;
+      }
+    }); // end processing of segments
 
     reportArray[logIndex] = `${book}-${type != "root" ? type + "-" : ""}${number}`;
     // console.log(reportArray[logIndex]);
 
     chapterHTML = chapterHTML.replace(/<header><ul>[\s\S]*?<\/ul>/, "<header>"); //remove header list
+
+    if (tableOfContents.length > 0) {
+      tableOfContents = `<div class="chapter-toc">${tableOfContents}</div>`;
+    }
     chapterHTML = chapterHTML.replace(/<\/header>/, "</header>\n" + tableOfContents);
     chapterHTML = `${top}\n\n${chapterHTML}\n\n${bottom}`;
 
-    let dir = "text";
     if (!fs.existsSync(dir)) {
       fs.mkdirSync(dir);
     }
@@ -190,7 +230,7 @@ function buildChapterPage(book, type, logIndex) {
   switch (book) {
     case `bu-vb`:
       bookFullNamePali = "Bhikkhu";
-      bookFullNameEnglish = "Monks’s";
+      bookFullNameEnglish = "Monks’";
       break;
     case `bi-vb`:
       bookFullNamePali = "Bhikkhuni";
