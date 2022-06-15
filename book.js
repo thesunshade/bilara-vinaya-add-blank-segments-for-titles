@@ -122,6 +122,7 @@ function buildSutta(book, type, number, logIndex) {
     </html>`;
 
     let paliInclusionFlag = true;
+    let leadingNumber = ("000" + logIndex).slice(-4); // used for file name
 
     // Process each segment
     Object.keys(htmlData).forEach(segment => {
@@ -152,7 +153,7 @@ function buildSutta(book, type, number, logIndex) {
       // create table of contents and link backs in headings
       if (openHtml.match(/<h[345]/)) {
         let level = openHtml.match(/<h([345])/)[1];
-        tableOfContents += `<div class="level-${level}" id="toc-${segment}"><a href="#${segment}">${translationData[segment]}</a></div>\n`;
+        tableOfContents += `<div class="level-${level}" id="toc-${segment}"><a href="${leadingNumber}-${book}-${type}${number}.xhtml#${segment}">${translationData[segment]}</a></div>\n`;
         openHtml = openHtml.replace(/(<h[345].*>)/, `<a href="#toc-${segment}"> $1${headerPrefix}`);
       }
       if (/<\/h[345]>/.test(closeHtml)) {
@@ -200,8 +201,6 @@ function buildSutta(book, type, number, logIndex) {
     if (!fs.existsSync(dir)) {
       fs.mkdirSync(dir);
     }
-
-    let leadingNumber = ("000" + logIndex).slice(-4);
 
     if (type === "root") {
       fs.writeFileSync(`./${dir}/${leadingNumber}-${book}${number}.xhtml`, chapterHTML);
