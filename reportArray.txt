@@ -401,7 +401,6 @@
   "pli-tv-pvr-3 segments added: 0",
   "pli-tv-pvr-4 segments added: 0",
   "pli-tv-pvr-5 segments added: 0",
-  "pli-tv-pvr-5 segments added: 0",
   "pli-tv-pvr-6 segments added: 0",
   "pli-tv-pvr-7 segments added: 0",
   "pli-tv-pvr-8 segments added: 0",

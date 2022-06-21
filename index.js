@@ -2,7 +2,7 @@ const fetch = require("node-fetch");
 const fs = require("fs");
 const language = "pli-tv";
 const rules = require("./rules.json");
-const branch = "published";
+const branch = "unpublished";
 const reportArray = [];
 
 // The actual thing that does the work
