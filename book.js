@@ -124,6 +124,10 @@ function buildSutta(book, type, number, logIndex) {
 
     // Process each segment
     Object.keys(htmlData).forEach(segment => {
+      htmlData[segment] = htmlData[segment].replace(
+        "<hr>",
+        `<div class="divider-container"><img class="divider" alt="dividers" src="../Images/dividers.png"/></div>`
+      );
       let [openHtml, closeHtml] = htmlData[segment].split(/{}/);
 
       // deal with missing segments
