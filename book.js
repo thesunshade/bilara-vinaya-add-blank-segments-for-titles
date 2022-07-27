@@ -162,12 +162,12 @@ function buildSutta(book, type, number, logIndex) {
         }</a></div>\n`;
         openHtml = openHtml.replace(
           /(<h[345].*>)/,
-          `<a href="#toc-${segment.replace(/\./g, "-").replace(/:/g, "--")}"> $1${headerPrefix}`
+          `<a href="#toc-${segment.replace(/\./g, "-").replace(/:/g, "--")}"> $1${headerPrefix}</a>`
         );
       }
-      if (/<\/h[345]>/.test(closeHtml)) {
-        closeHtml = closeHtml.replace(/(<\/h[345]>)/, `$1</a>`);
-      }
+      // if (/<\/h[345]>/.test(closeHtml)) {
+      //   closeHtml = closeHtml.replace(/(<\/h[345]>)/, `$1</a>`);
+      // }
 
       // remove Pali in p, dd, and li unless it is part of a rule
       if (/<p|<dd|<li/.test(openHtml)) {
